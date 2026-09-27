@@ -14,12 +14,13 @@ class FeatureEmbedder(nn.Module):
 
     def __init__(self, num_embeddings: int, embedding_dim: int):
         super().__init__()
-        # TODO: nn.Embedding(num_embeddings, embedding_dim)
-        raise NotImplementedError
+        self.num_embeddings = num_embeddings
+        self.embedding_dim = embedding_dim
+
+        self.embedder = nn.Embedding(self.num_embeddings, self.embedding_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # TODO: return embedding lookup
-        raise NotImplementedError
+        return self.embedder(x)
 
 
 class MultiFeatureEmbedder(nn.Module):
@@ -27,9 +28,22 @@ class MultiFeatureEmbedder(nn.Module):
 
     def __init__(self, feature_configs: dict):
         super().__init__()
-        # TODO: build a ModuleDict of FeatureEmbedder per feature in feature_configs
-        raise NotImplementedError
+        self.feature_configs = feature_configs
+        self.feature_embedders_mapping: nn.ModuleDict["str", FeatureEmbedder] = (
+            nn.ModuleDict()
+        )
+
+        for feature_name, feature_config in self.feature_configs.items():
+            self.feature_embedders_mapping[feature_name] = FeatureEmbedder(
+                feature_config[0], feature_config[1]
+            )
 
     def forward(self, features: dict) -> torch.Tensor:
-        # TODO: embed each feature and concatenate along the last dim
-        raise NotImplementedError
+        if set(features.keys()) != set(self.feature_embedders_mapping.keys()):
+            raise KeyError("`features` keys and `feature_configs` keys should be same")
+
+        res = []
+        for feature_name, tensor in features.items():
+            embedder = self.feature_embedders_mapping[feature_name]
+            res.append(embedder(tensor))
+        return torch.cat(res, dim=-1)

@@ -15,9 +15,22 @@ class SimilarityScorer(nn.Module):
 
     def __init__(self, method: str = "dot"):
         super().__init__()
-        # TODO: store the scoring method ("dot", "cosine", ...)
-        raise NotImplementedError
+        self.method = method
+
+        self._post_init()
+
+    def _post_init(self):
+        supported_methods = {"dot", "cosine"}
+
+        if self.method not in supported_methods:
+            raise ValueError(
+                f"Unsupported method: {self.method}. " f"Available: {supported_methods}"
+            )
 
     def forward(self, user_emb: torch.Tensor, item_emb: torch.Tensor) -> torch.Tensor:
-        # TODO: compute similarity score between user_emb and item_emb
-        raise NotImplementedError
+        res = torch.tensor([])
+        if self.method == "dot":
+            res = torch.sum(user_emb * item_emb, dim=-1)
+        elif self.method == "cosine":
+            res = torch.cosine_similarity(user_emb, item_emb, dim=-1)
+        return res
