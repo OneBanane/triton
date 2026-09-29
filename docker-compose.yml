@@ -1,0 +1,20 @@
+services:
+  triton:
+    image: nvcr.io/nvidia/tritonserver:26.08-py3
+    platform: linux/arm64
+
+    container_name: triton-server
+
+    ports:
+      - "8000:8000"  # HTTP
+      - "8001:8001"  # gRPC
+      - "8002:8002"  # Metrics
+
+    volumes:
+      - ./model_repository:/models:ro
+
+    command:
+      - tritonserver
+      - --model-repository=/models
+
+    restart: unless-stopped
