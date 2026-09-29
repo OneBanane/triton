@@ -234,5 +234,11 @@ checkpoints/
 # Ignore Hydra run logs
 outputs/
 
+# Ignore artifacts
+artifacts/
+
+# Ignore models
+models/*.onnx
+
 # Don't ignore gitkeep
 !**/.gitkeep

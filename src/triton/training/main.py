@@ -15,11 +15,13 @@ field from the CLI, e.g.:
 
 from __future__ import annotations
 
+import torch
 import hydra
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader, default_collate
+from pathlib import Path
 
 from triton.models.recommender.network import TwoTowerModel
 from triton.training.dataset import MovieLensDataset
@@ -86,6 +88,48 @@ def build_lightning_module(
     )
 
 
+def _build_dummy_input(
+    model: TwoTowerModel, batch_size: int = 1
+) -> tuple[dict[str, torch.Tensor], dict[str, torch.Tensor]]:
+    def _dummy_features(feature_configs: dict) -> dict[str, torch.Tensor]:
+        return {
+            name: torch.randint(0, num_embeddings, (batch_size,))
+            for name, (num_embeddings, _) in feature_configs.items()
+        }
+
+    return (
+        _dummy_features(model.user_feature_configs),
+        _dummy_features(model.item_feature_configs),
+    )
+
+
+def save_model_to_onnx(cfg: DictConfig, model: TwoTowerModel) -> None:
+    dummy_input = _build_dummy_input(model, cfg.training.batch_size)
+    output_path = (
+        Path(cfg.training.artifacts) / str(cfg.training.model_version) / "model.onnx"
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with torch.no_grad():
+        torch.onnx.export(
+            model=model,
+            args=(*dummy_input, {}),
+            f=output_path,
+            export_params=True,
+            opset_version=14,
+            do_constant_folding=True,
+            input_names=["user_id", "movie_id"],
+            output_names=["output"],
+            dynamic_axes={
+                "user_id": {0: "batch_size"},
+                "movie_id": {0: "batch_size"},
+                "output": {0: "batch_size"},
+            },
+        )
+
+    print("Model was saved in artifacts")
+
+
 @hydra.main(version_base="1.3", config_path="../../../configs", config_name="config")
 def main(cfg: DictConfig) -> None:
     pl.seed_everything(cfg.training.seed)
@@ -112,6 +156,8 @@ def main(cfg: DictConfig) -> None:
     )
 
     print(f"Best checkpoint: {checkpoint_callback.best_model_path}")
+
+    save_model_to_onnx(cfg, lightning_module.model)
 
 
 if __name__ == "__main__":
