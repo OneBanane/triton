@@ -1,0 +1,8 @@
+id_embedding_dim: 32
+embedding_dim: 32
+hidden_dims:
+  - 128
+  - 64
+dropout: 0.0
+normalize: true
+similarity_method: dot

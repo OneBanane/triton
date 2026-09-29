@@ -1,0 +1,5 @@
+defaults:
+  - model: two_tower
+  - optimizer: adam
+  - dataset: movielens
+  - training: options_v1
