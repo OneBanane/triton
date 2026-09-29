@@ -29,14 +29,20 @@ class MultiFeatureEmbedder(nn.Module):
     def __init__(self, feature_configs: dict):
         super().__init__()
         self.feature_configs = feature_configs
-        self.feature_embedders_mapping: nn.ModuleDict["str", FeatureEmbedder] = (
-            nn.ModuleDict()
-        )
+        self.feature_embedders_mapping: nn.ModuleDict[
+            "str", FeatureEmbedder | MultiHotFeatureEmbedder
+        ] = nn.ModuleDict()
 
         for feature_name, feature_config in self.feature_configs.items():
-            self.feature_embedders_mapping[feature_name] = FeatureEmbedder(
-                feature_config[0], feature_config[1]
-            )
+            # case when feature_config contains multi_hot
+            if len(feature_config) == 3 and feature_config[-1] == "multi_hot":
+                self.feature_embedders_mapping[feature_name] = MultiHotFeatureEmbedder(
+                    *feature_config
+                )
+            else:
+                self.feature_embedders_mapping[feature_name] = FeatureEmbedder(
+                    *feature_config
+                )
 
     def forward(self, features: dict) -> torch.Tensor:
         if set(features.keys()) != set(self.feature_embedders_mapping.keys()):
@@ -47,3 +53,30 @@ class MultiFeatureEmbedder(nn.Module):
             embedder = self.feature_embedders_mapping[feature_name]
             res.append(embedder(tensor))
         return torch.cat(res, dim=-1)
+
+
+class MultiHotFeatureEmbedder(nn.Module):
+    def __init__(
+        self,
+        num_embeddings: int,
+        embedding_dim: int,
+        tag: str = None,
+        padding_idx: int = None,
+        mode: str = "mean",
+    ):
+        super().__init__()
+        self.num_embeddings = num_embeddings
+        self.embedding_dim = embedding_dim
+        self.tag = tag
+        self.padding_idx = padding_idx
+        self.mode = mode
+
+        self.embedder = nn.EmbeddingBag(
+            self.num_embeddings,
+            self.embedding_dim,
+            padding_idx=self.padding_idx,
+            mode=self.mode,
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.embedder(x)

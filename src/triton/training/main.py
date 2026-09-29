@@ -44,6 +44,8 @@ def build_dataloaders(
         cfg.dataset.test_path,
         user_vocab=train_dataset.user_vocab,
         item_vocab=train_dataset.item_vocab,
+        genre_vocab=train_dataset.genre_vocab,
+        max_genres=train_dataset.max_genres,
         rating_threshold=cfg.training.rating_threshold,
     )
 
@@ -73,7 +75,12 @@ def build_lightning_module(
             "user_id": (train_dataset.num_users, cfg.model.id_embedding_dim)
         },
         item_feature_configs={
-            "movie_id": (train_dataset.num_items, cfg.model.id_embedding_dim)
+            "movie_id": (train_dataset.num_items, cfg.model.id_embedding_dim),
+            "genres": (
+                train_dataset.num_genres + 1,
+                cfg.model.genre_embedding_dim,
+                "multi_hot",
+            ),
         },
         embedding_dim=cfg.model.embedding_dim,
         tower_hidden_dims=list(cfg.model.hidden_dims),

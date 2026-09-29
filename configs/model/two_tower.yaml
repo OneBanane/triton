@@ -1,4 +1,5 @@
 id_embedding_dim: 32
+genre_embedding_dim: 32
 embedding_dim: 32
 hidden_dims:
   - 128
