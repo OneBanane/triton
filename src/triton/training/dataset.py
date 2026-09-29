@@ -38,6 +38,8 @@ class MovieLensDataset(Dataset):
         interactions: pl.DataFrame,
         user_vocab: dict[int, int] | None = None,
         item_vocab: dict[int, int] | None = None,
+        genre_vocab: dict[str, int] | None = None,
+        max_genres: int | None = None,
         rating_threshold: float = 3.5,
     ):
         self.interactions = interactions
@@ -60,6 +62,21 @@ class MovieLensDataset(Dataset):
                 raw_id: i
                 for i, raw_id in enumerate(sorted(set(interactions["movieId"])))
             }
+
+        if genre_vocab is None:
+            genre_vocab = dict()
+            cnt = 0
+
+            for raw in sorted(set(interactions["genres"])):
+                for genre in raw.split("|"):
+                    if genre_vocab.get(genre, -1) == -1:
+                        genre_vocab[genre] = cnt
+                        cnt += 1
+
+            genre_vocab = {key: idx for idx, key in enumerate(sorted(genre_vocab))}
+
+        if max_genres is None:
+            max_genres = max(len(raw.split("|")) for raw in interactions["genres"])
 
         #   eagerly validate that every raw id in `interactions` is a key
         #   of the (possibly caller-provided) vocab; callers are expected to
@@ -85,8 +102,21 @@ class MovieLensDataset(Dataset):
                 f"Missing item id: {missing_items[0]}."
             )
 
+        missing_genres = (
+            interactions.select(pl.col("genres").str.split("|"))
+            .explode("genres")
+            .filter(~pl.col("genres").is_in(list(genre_vocab.keys())))
+        )["genres"]
+        if missing_genres.len() > 0:
+            raise KeyError(
+                f"Every raw genre token in `interactions` should be a key of "
+                f"the vocab. Missing genre: {missing_genres[0]}."
+            )
+
         self._user_vocab = user_vocab
         self._item_vocab = item_vocab
+        self._genre_vocab = genre_vocab
+        self._max_genres = max_genres
 
     @classmethod
     def from_parquet(
@@ -94,10 +124,19 @@ class MovieLensDataset(Dataset):
         path: str | Path,
         user_vocab: dict[int, int] | None = None,
         item_vocab: dict[int, int] | None = None,
+        genre_vocab: dict[str, int] | None = None,
+        max_genres: int | None = None,
         rating_threshold: float = 3.5,
     ) -> MovieLensDataset:
         interactions = pl.read_parquet(path)
-        return cls(interactions, user_vocab, item_vocab, rating_threshold)
+        return cls(
+            interactions,
+            user_vocab=user_vocab,
+            item_vocab=item_vocab,
+            genre_vocab=genre_vocab,
+            max_genres=max_genres,
+            rating_threshold=rating_threshold,
+        )
 
     @property
     def user_vocab(self) -> dict[int, int]:
@@ -108,12 +147,24 @@ class MovieLensDataset(Dataset):
         return self._item_vocab
 
     @property
+    def genre_vocab(self) -> dict[str, int]:
+        return self._genre_vocab
+
+    @property
+    def max_genres(self) -> int:
+        return self._max_genres
+
+    @property
     def num_users(self) -> int:
         return len(self.user_vocab)
 
     @property
     def num_items(self) -> int:
         return len(self.item_vocab)
+
+    @property
+    def num_genres(self) -> int:
+        return len(self.genre_vocab)
 
     def __len__(self) -> int:
         return self.interactions.height
@@ -128,13 +179,25 @@ class MovieLensDataset(Dataset):
         #   }
         raw_user_id = self.interactions["userId"][index]
         raw_item_id = self.interactions["movieId"][index]
+        raw_genres = self.interactions["genres"][index]
         rating = self.interactions["rating"][index]
+
+        raw_genre_ids = raw_genres.split("|")
 
         user_id = self.user_vocab[raw_user_id]
         item_id = self.item_vocab[raw_item_id]
+        genre_ids = [self.genre_vocab[g] for g in raw_genre_ids]
+
+        pad_idx = self.num_genres
+        genre_ids = genre_ids + [pad_idx] * (self.max_genres - len(genre_ids))
 
         return {
-            "user_features": {"user_id": torch.tensor(user_id)},
-            "item_features": {"movie_id": torch.tensor(item_id)},
+            "user_features": {
+                "user_id": torch.tensor(user_id),
+            },
+            "item_features": {
+                "movie_id": torch.tensor(item_id),
+                "genres": torch.tensor(genre_ids, dtype=torch.long),
+            },
             "label": torch.tensor(float(rating >= self.rating_threshold)),
         }

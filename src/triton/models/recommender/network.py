@@ -36,8 +36,12 @@ class TwoTowerModel(nn.Module):
         self.tower_dropout = tower_dropout
         self.tower_normalize = tower_normalize
 
-        self.user_input_dim = sum(dim for _, dim in self.user_feature_configs.values())
-        self.item_input_dim = sum(dim for _, dim in self.item_feature_configs.values())
+        self.user_input_dim = sum(
+            config[1] for config in self.user_feature_configs.values()
+        )
+        self.item_input_dim = sum(
+            config[1] for config in self.item_feature_configs.values()
+        )
 
         self.user_embedder = MultiFeatureEmbedder(self.user_feature_configs)
         self.user_tower = UserTower(

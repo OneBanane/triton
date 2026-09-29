@@ -19,4 +19,4 @@ clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 
 train:
-	uv run python -m triton.training.main
+	PYTORCH_ENABLE_MPS_FALLBACK=1 uv run python -m triton.training.main
