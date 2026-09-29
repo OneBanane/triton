@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import hydra
 import lightning.pytorch as pl
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader, default_collate
 
@@ -100,10 +100,12 @@ def main(cfg: DictConfig) -> None:
         save_top_k=1,
     )
 
+    early_stopping_callback = EarlyStopping(monitor="val_loss", mode="min", patience=3)
+
     trainer = pl.Trainer(
         max_epochs=cfg.training.max_epochs,
         accelerator=cfg.training.accelerator,
-        callbacks=[checkpoint_callback],
+        callbacks=[checkpoint_callback, early_stopping_callback],
     )
     trainer.fit(
         lightning_module, train_dataloaders=train_loader, val_dataloaders=val_loader
