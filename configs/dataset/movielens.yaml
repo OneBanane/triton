@@ -1,0 +1,3 @@
+name: movielens
+train_path: data/preprocessed/train.parquet
+test_path: data/preprocessed/test.parquet
