@@ -225,5 +225,11 @@ data/raw/**
 # Ignore preprocessed data
 data/preprocessed/**
 
+# Ignore lighting logs
+lightning_logs/
+
+# Ignore checkpoints
+checkpoints/
+
 # Don't ignore gitkeep
 !**/.gitkeep
