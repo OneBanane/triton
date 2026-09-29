@@ -96,13 +96,19 @@ def build_lightning_module(
 
 
 def _build_dummy_input(
-    model: TwoTowerModel, batch_size: int = 1
+    model: TwoTowerModel, batch_size: int, max_genres: int
 ) -> tuple[dict[str, torch.Tensor], dict[str, torch.Tensor]]:
     def _dummy_features(feature_configs: dict) -> dict[str, torch.Tensor]:
-        return {
-            name: torch.randint(0, num_embeddings, (batch_size,))
-            for name, (num_embeddings, _) in feature_configs.items()
-        }
+        features = {}
+        for name, config in feature_configs.items():
+            num_embeddings = config[0]
+            if len(config) == 3 and config[-1] == "multi_hot":
+                features[name] = torch.randint(
+                    0, num_embeddings, (batch_size, max_genres)
+                )
+            else:
+                features[name] = torch.randint(0, num_embeddings, (batch_size,))
+        return features
 
     return (
         _dummy_features(model.user_feature_configs),
@@ -110,8 +116,8 @@ def _build_dummy_input(
     )
 
 
-def save_model_to_onnx(cfg: DictConfig, model: TwoTowerModel) -> None:
-    dummy_input = _build_dummy_input(model, cfg.training.batch_size)
+def save_model_to_onnx(cfg: DictConfig, model: TwoTowerModel, max_genres: int) -> None:
+    dummy_input = _build_dummy_input(model, cfg.training.batch_size, max_genres)
     output_path = (
         Path(cfg.training.artifacts) / str(cfg.training.model_version) / "model.onnx"
     )
@@ -125,11 +131,12 @@ def save_model_to_onnx(cfg: DictConfig, model: TwoTowerModel) -> None:
             export_params=True,
             opset_version=14,
             do_constant_folding=True,
-            input_names=["user_id", "movie_id"],
+            input_names=["user_id", "movie_id", "genres"],
             output_names=["output"],
             dynamic_axes={
                 "user_id": {0: "batch_size"},
                 "movie_id": {0: "batch_size"},
+                "genres": {0: "batch_size", 1: "max_genres"},
                 "output": {0: "batch_size"},
             },
         )
@@ -164,7 +171,7 @@ def main(cfg: DictConfig) -> None:
 
     print(f"Best checkpoint: {checkpoint_callback.best_model_path}")
 
-    save_model_to_onnx(cfg, lightning_module.model)
+    save_model_to_onnx(cfg, lightning_module.model, train_dataset.max_genres)
 
 
 if __name__ == "__main__":
