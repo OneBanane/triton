@@ -5,53 +5,25 @@ Loads preprocessed interaction parquet files (see `notebooks/main.ipynb`),
 builds a `TwoTowerModel` sized to the resulting user/item vocabularies,
 and runs `TwoTowerLightningModule` through a `lightning.pytorch.Trainer`.
 
-Usage:
-    uv run python -m triton.models.training.main
-    uv run python -m triton.models.training.main --max-epochs 20 --batch-size 512
+Config is composed by Hydra from `configs/config.yaml` and its `model`,
+`optimizer`, `dataset` and `training` groups (see `configs/`). Override any
+field from the CLI, e.g.:
+    uv run python -m triton.training.main
+    uv run python -m triton.training.main training.max_epochs=20 training.batch_size=512
+    uv run python -m triton.training.main model=two_tower optimizer.learning_rate=1e-4
 """
 
 from __future__ import annotations
 
-import argparse
-from pathlib import Path
-
+import hydra
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint
+from omegaconf import DictConfig
 from torch.utils.data import DataLoader, default_collate
 
 from triton.models.recommender.network import TwoTowerModel
 from triton.training.dataset import MovieLensDataset
 from triton.training.train import TwoTowerLightningModule
-
-DEFAULT_TRAIN_PATH = Path("data/preprocessed/train.parquet")
-DEFAULT_VAL_PATH = Path("data/preprocessed/test.parquet")
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train the Two-Tower recommender.")
-
-    parser.add_argument("--train-path", type=Path, default=DEFAULT_TRAIN_PATH)
-    parser.add_argument("--val-path", type=Path, default=DEFAULT_VAL_PATH)
-    parser.add_argument("--rating-threshold", type=float, default=3.5)
-
-    parser.add_argument("--id-embedding-dim", type=int, default=32)
-    parser.add_argument("--embedding-dim", type=int, default=32)
-    parser.add_argument("--tower-hidden-dims", type=int, nargs="+", default=[128, 64])
-    parser.add_argument("--tower-dropout", type=float, default=0.0)
-    parser.add_argument("--tower-normalize", action="store_true")
-    parser.add_argument("--similarity-method", choices=["dot", "cosine"], default="dot")
-
-    parser.add_argument("--learning-rate", type=float, default=1e-3)
-    parser.add_argument("--batch-size", type=int, default=256)
-    parser.add_argument("--num-workers", type=int, default=0)
-    parser.add_argument("--max-epochs", type=int, default=10)
-    parser.add_argument("--accelerator", type=str, default="auto")
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument(
-        "--checkpoint-dir", type=Path, default=Path("checkpoints/recommender")
-    )
-
-    return parser.parse_args()
 
 
 def _collate_batch(samples: list[dict]) -> dict:
@@ -63,30 +35,30 @@ def _collate_batch(samples: list[dict]) -> dict:
 
 
 def build_dataloaders(
-    args: argparse.Namespace,
+    cfg: DictConfig,
 ) -> tuple[DataLoader, DataLoader, MovieLensDataset]:
     train_dataset = MovieLensDataset.from_parquet(
-        args.train_path, rating_threshold=args.rating_threshold
+        cfg.dataset.train_path, rating_threshold=cfg.training.rating_threshold
     )
     val_dataset = MovieLensDataset.from_parquet(
-        args.val_path,
+        cfg.dataset.test_path,
         user_vocab=train_dataset.user_vocab,
         item_vocab=train_dataset.item_vocab,
-        rating_threshold=args.rating_threshold,
+        rating_threshold=cfg.training.rating_threshold,
     )
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=args.batch_size,
+        batch_size=cfg.training.batch_size,
         shuffle=True,
-        num_workers=args.num_workers,
+        num_workers=cfg.training.num_workers,
         collate_fn=_collate_batch,
     )
     val_loader = DataLoader(
         val_dataset,
-        batch_size=args.batch_size,
+        batch_size=cfg.training.batch_size,
         shuffle=False,
-        num_workers=args.num_workers,
+        num_workers=cfg.training.num_workers,
         collate_fn=_collate_batch,
     )
 
@@ -94,41 +66,43 @@ def build_dataloaders(
 
 
 def build_lightning_module(
-    args: argparse.Namespace, train_dataset: MovieLensDataset
+    cfg: DictConfig, train_dataset: MovieLensDataset
 ) -> TwoTowerLightningModule:
     model = TwoTowerModel(
         user_feature_configs={
-            "user_id": (train_dataset.num_users, args.id_embedding_dim)
+            "user_id": (train_dataset.num_users, cfg.model.id_embedding_dim)
         },
         item_feature_configs={
-            "movie_id": (train_dataset.num_items, args.id_embedding_dim)
+            "movie_id": (train_dataset.num_items, cfg.model.id_embedding_dim)
         },
-        embedding_dim=args.embedding_dim,
-        tower_hidden_dims=args.tower_hidden_dims,
-        tower_dropout=args.tower_dropout,
-        tower_normalize=args.tower_normalize,
-        similarity_method=args.similarity_method,
+        embedding_dim=cfg.model.embedding_dim,
+        tower_hidden_dims=list(cfg.model.hidden_dims),
+        tower_dropout=cfg.model.dropout,
+        tower_normalize=cfg.model.normalize,
+        similarity_method=cfg.model.similarity_method,
     )
-    return TwoTowerLightningModule(model=model, learning_rate=args.learning_rate)
+    return TwoTowerLightningModule(
+        model=model, learning_rate=cfg.optimizer.learning_rate
+    )
 
 
-def main() -> None:
-    args = parse_args()
-    pl.seed_everything(args.seed)
+@hydra.main(version_base="1.3", config_path="../../../configs", config_name="config")
+def main(cfg: DictConfig) -> None:
+    pl.seed_everything(cfg.training.seed)
 
-    train_loader, val_loader, train_dataset = build_dataloaders(args)
-    lightning_module = build_lightning_module(args, train_dataset)
+    train_loader, val_loader, train_dataset = build_dataloaders(cfg)
+    lightning_module = build_lightning_module(cfg, train_dataset)
 
     checkpoint_callback = ModelCheckpoint(
-        dirpath=args.checkpoint_dir,
+        dirpath=cfg.training.checkpoint_dir,
         filename="{epoch}-{val_loss:.4f}",
         monitor="val_loss",
         save_top_k=1,
     )
 
     trainer = pl.Trainer(
-        max_epochs=args.max_epochs,
-        accelerator=args.accelerator,
+        max_epochs=cfg.training.max_epochs,
+        accelerator=cfg.training.accelerator,
         callbacks=[checkpoint_callback],
     )
     trainer.fit(
