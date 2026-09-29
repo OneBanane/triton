@@ -231,5 +231,8 @@ lightning_logs/
 # Ignore checkpoints
 checkpoints/
 
+# Ignore Hydra run logs
+outputs/
+
 # Don't ignore gitkeep
 !**/.gitkeep
