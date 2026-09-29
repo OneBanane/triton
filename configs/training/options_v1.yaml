@@ -5,3 +5,5 @@ num_workers: 0
 max_epochs: 10
 accelerator: gpu
 seed: 42
+artifacts: models/recommender_onnx
+model_version: 1
