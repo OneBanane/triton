@@ -17,4 +17,49 @@ services:
       - tritonserver
       - --model-repository=/models
 
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "http://localhost:8000/v2/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+
     restart: unless-stopped
+
+    networks:
+      - triton-network
+
+  triton-api:
+    image: triton-inference:0.2.0
+    pull_policy: never
+    platform: linux/arm64
+
+    container_name: triton-api
+
+    ports:
+      - "8003:8000"
+
+    environment:
+      TRITON_URL: ${TRITON_URL:-triton:8001}
+      TRITON_MODEL_NAME: ${TRITON_MODEL_NAME:-recommender_onnx}
+      VOCABULARY_PATH: /app/vocabulary.json
+
+    volumes:
+      - type: bind
+        source: ${VOCABULARY_HOST_PATH:-./artifacts/vocabulary.json}
+        target: /app/vocabulary.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+    depends_on:
+      triton:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    networks:
+      - triton-network
+
+networks:
+  triton-network:
