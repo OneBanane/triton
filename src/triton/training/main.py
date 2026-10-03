@@ -15,13 +15,15 @@ field from the CLI, e.g.:
 
 from __future__ import annotations
 
-import torch
+import json
+from pathlib import Path
+
 import hydra
 import lightning.pytorch as pl
-from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
+import torch
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader, default_collate
-from pathlib import Path
 
 from triton.models.recommender.network import TwoTowerModel
 from triton.training.dataset import MovieLensDataset
@@ -116,6 +118,23 @@ def _build_dummy_input(
     )
 
 
+def save_vocabulary(cfg: DictConfig, train_dataset: MovieLensDataset) -> None:
+    """Save the training feature mappings and genre padding width for inference."""
+    output_path = Path(cfg.training.vocabulary_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    vocabulary = {
+        "user_vocab": train_dataset.user_vocab,
+        "item_vocab": train_dataset.item_vocab,
+        "genre_vocab": train_dataset.genre_vocab,
+        "max_genres": train_dataset.max_genres,
+    }
+    with output_path.open("w", encoding="utf-8") as output_file:
+        json.dump(vocabulary, output_file, ensure_ascii=False, indent=2)
+        output_file.write("\n")
+
+    print(f"Vocabulary was saved to {output_path}")
+
+
 def save_model_to_onnx(cfg: DictConfig, model: TwoTowerModel, max_genres: int) -> None:
     dummy_input = _build_dummy_input(model, cfg.training.batch_size, max_genres)
     output_path = (
@@ -172,6 +191,7 @@ def main(cfg: DictConfig) -> None:
     print(f"Best checkpoint: {checkpoint_callback.best_model_path}")
 
     save_model_to_onnx(cfg, lightning_module.model, train_dataset.max_genres)
+    save_vocabulary(cfg, train_dataset)
 
 
 if __name__ == "__main__":

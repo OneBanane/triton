@@ -8,12 +8,12 @@ Compose defaults to `triton:8001` for gRPC and `recommender_onnx` for the model.
 It mounts a host vocabulary file read-only at `/app/vocabulary.json` and sets
 `VOCABULARY_PATH` to that container path.
 
-Before starting, provide `./artifacts/vocabulary.json` from the same training run
-as `models/recommender_onnx/1/model.onnx`. The file must contain `user_vocab`,
-`item_vocab`, `genre_vocab`, and `max_genres`, with the exact mappings used to
-train that model. The current training code exports ONNX but does not save this
-JSON file; it is also absent from the API image. Compose will fail if the host
-file is missing instead of creating a directory at its path.
+Before starting, run training to export `models/recommender_onnx/1/model.onnx`
+and `./artifacts/vocabulary.json` from the same training run. The JSON contains
+`user_vocab`, `item_vocab`, `genre_vocab`, and `max_genres`, with the exact
+mappings used to train that model. Override `training.vocabulary_path` to save
+it elsewhere, and set `VOCABULARY_HOST_PATH` to match. Compose will fail if the
+host file is missing instead of creating a directory at its path.
 
 To customize the host file path or the API's Triton settings, copy `.env.example`
 to `.env` and edit it. `VOCABULARY_HOST_PATH` is a host path;

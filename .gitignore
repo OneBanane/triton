@@ -240,5 +240,8 @@ artifacts/
 # Ignore models
 models/*.onnx
 
+# Ignore requests
+requests/
+
 # Don't ignore gitkeep
 !**/.gitkeep

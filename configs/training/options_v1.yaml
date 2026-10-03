@@ -7,3 +7,4 @@ accelerator: gpu
 seed: 42
 artifacts: models/recommender_onnx
 model_version: 1
+vocabulary_path: artifacts/vocabulary.json
