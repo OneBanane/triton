@@ -1,0 +1,12 @@
+{
+  "user_id": 1,
+  "candidates": [
+    {
+      "movie_id": 1258,
+      "title": "Shining, The (1980)",
+      "genres": [
+        "Horror"
+      ]
+    }
+  ]
+}

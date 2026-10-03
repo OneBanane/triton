@@ -1,0 +1,54 @@
+{
+  "user_id": 4,
+  "candidates": [
+    {
+      "movie_id": 1185,
+      "title": "My Left Foot (1989)",
+      "genres": [
+        "Drama"
+      ]
+    },
+    {
+      "movie_id": 1392,
+      "title": "Citizen Ruth (1996)",
+      "genres": [
+        "Comedy",
+        "Drama"
+      ]
+    },
+    {
+      "movie_id": 2324,
+      "title": "Life Is Beautiful (La Vita è bella) (1997)",
+      "genres": [
+        "Comedy",
+        "Drama",
+        "Romance",
+        "War"
+      ]
+    },
+    {
+      "movie_id": 2687,
+      "title": "Tarzan (1999)",
+      "genres": [
+        "Adventure",
+        "Animation",
+        "Children",
+        "Drama"
+      ]
+    },
+    {
+      "movie_id": 2987,
+      "title": "Who Framed Roger Rabbit? (1988)",
+      "genres": [
+        "Adventure",
+        "Animation",
+        "Children",
+        "Comedy",
+        "Crime",
+        "Fantasy",
+        "Mystery"
+      ]
+    }
+  ],
+  "top_k": 3
+}
