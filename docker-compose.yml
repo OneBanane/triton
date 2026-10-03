@@ -30,7 +30,7 @@ services:
       - triton-network
 
   triton-api:
-    image: triton-inference:0.2.0
+    image: triton-inference:0.3.0
     pull_policy: never
     platform: linux/arm64
 

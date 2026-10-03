@@ -1,6 +1,6 @@
 # Triton models
 
-Run Triton Server and the local `triton-inference:0.2.0` API image with Docker
+Run Triton Server and the local `triton-inference:0.3.0` API image with Docker
 Compose. Both services currently use `linux/arm64`.
 
 The API image reads `TRITON_URL`, `TRITON_MODEL_NAME`, and `VOCABULARY_PATH`.
