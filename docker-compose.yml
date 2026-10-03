@@ -61,5 +61,43 @@ services:
     networks:
       - triton-network
 
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+
+    ports:
+      - 9090:9090
+
+    volumes:
+      - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml
+
+    depends_on:
+      triton:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    networks:
+      - triton-network
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+
+    ports:
+      - 3000:3000
+
+    depends_on:
+      prometheus:
+        condition: service_started
+
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD}
+
+    restart: unless-stopped
+
+    networks:
+      - triton-network
+
 networks:
   triton-network:
