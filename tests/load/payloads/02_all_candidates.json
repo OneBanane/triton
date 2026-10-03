@@ -1,0 +1,56 @@
+{
+  "user_id": 2,
+  "candidates": [
+    {
+      "movie_id": 1356,
+      "title": "Star Trek: First Contact (1996)",
+      "genres": [
+        "Action",
+        "Adventure",
+        "Sci-Fi",
+        "Thriller"
+      ]
+    },
+    {
+      "movie_id": 637,
+      "title": "Sgt. Bilko (1996)",
+      "genres": [
+        "Comedy"
+      ]
+    },
+    {
+      "movie_id": 14,
+      "title": "Nixon (1995)",
+      "genres": [
+        "Drama"
+      ]
+    },
+    {
+      "movie_id": 805,
+      "title": "Time to Kill, A (1996)",
+      "genres": [
+        "Drama",
+        "Thriller"
+      ]
+    },
+    {
+      "movie_id": 79,
+      "title": "Juror, The (1996)",
+      "genres": [
+        "Drama",
+        "Thriller"
+      ]
+    },
+    {
+      "movie_id": 661,
+      "title": "James and the Giant Peach (1996)",
+      "genres": [
+        "Adventure",
+        "Animation",
+        "Children",
+        "Fantasy",
+        "Musical"
+      ]
+    }
+  ]
+}

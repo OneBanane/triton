@@ -1,0 +1,37 @@
+{
+  "user_id": 5,
+  "candidates": [
+    {
+      "movie_id": 344,
+      "title": "Ace Ventura: Pet Detective (1994)",
+      "genres": [
+        "Comedy"
+      ]
+    },
+    {
+      "movie_id": 364,
+      "title": "Lion King, The (1994)",
+      "genres": [
+        "Adventure",
+        "Animation",
+        "Children",
+        "Drama",
+        "Musical",
+        "IMAX"
+      ]
+    },
+    {
+      "movie_id": 595,
+      "title": "Beauty and the Beast (1991)",
+      "genres": [
+        "Animation",
+        "Children",
+        "Fantasy",
+        "Musical",
+        "Romance",
+        "IMAX"
+      ]
+    }
+  ],
+  "top_k": 10
+}

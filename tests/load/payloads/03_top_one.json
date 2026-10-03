@@ -1,0 +1,49 @@
+{
+  "user_id": 3,
+  "candidates": [
+    {
+      "movie_id": 477,
+      "title": "What's Love Got to Do with It? (1993)",
+      "genres": [
+        "Drama",
+        "Musical"
+      ]
+    },
+    {
+      "movie_id": 532,
+      "title": "Serial Mom (1994)",
+      "genres": [
+        "Comedy",
+        "Crime",
+        "Horror"
+      ]
+    },
+    {
+      "movie_id": 345,
+      "title": "Adventures of Priscilla, Queen of the Desert, The (1994)",
+      "genres": [
+        "Comedy",
+        "Drama"
+      ]
+    },
+    {
+      "movie_id": 281,
+      "title": "Nobody's Fool (1994)",
+      "genres": [
+        "Comedy",
+        "Drama",
+        "Romance"
+      ]
+    },
+    {
+      "movie_id": 232,
+      "title": "Eat Drink Man Woman (Yin shi nan nu) (1994)",
+      "genres": [
+        "Comedy",
+        "Drama",
+        "Romance"
+      ]
+    }
+  ],
+  "top_k": 1
+}
